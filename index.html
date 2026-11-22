@@ -143,8 +143,19 @@
       window.__gdUnlockAudio = function () {
         for (var i = 0; i < contexts.length; i++) {
           var ctx = contexts[i];
-          if (ctx && ctx.state === 'suspended' && typeof ctx.resume === 'function') {
+          if (!ctx) continue;
+          if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
             try { ctx.resume(); } catch (_) {}
+          }
+          if (!ctx.__gdPrimed && typeof ctx.createBuffer === 'function' && typeof ctx.createBufferSource === 'function') {
+            try {
+              var b = ctx.createBuffer(1, 1, 22050);
+              var s = ctx.createBufferSource();
+              s.buffer = b;
+              s.connect(ctx.destination);
+              if (typeof s.start === 'function') s.start(0);
+              ctx.__gdPrimed = true;
+            } catch (_) {}
           }
         }
         if (window.__gdRadio && typeof window.__gdRadio.unlock === 'function') {
@@ -157,6 +168,9 @@
       });
     })();
   </script>
+  <link rel="preload" href="index.js" as="script">
+  <link rel="preload" href="index.wasm" as="fetch" crossorigin="anonymous">
+  <link rel="preload" href="index.pck" as="fetch" crossorigin="anonymous">
   <link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
 
@@ -186,7 +200,7 @@
       const playBtn = document.getElementById('play-sound-btn');
       const soundHint = document.getElementById('sound-hint');
       const errBox = document.getElementById('error-notice');
-      const engine = new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":13636464,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4});
+      const engine = new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":9673572,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4});
 
       function showError(msg) {
         label.style.display = 'none';
