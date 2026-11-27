@@ -544,7 +544,7 @@
       const fill = document.getElementById('progress-fill');
       const label = document.getElementById('progress-label');
       const errBox = document.getElementById('error-notice');
-      const engine = new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":11010524,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4});
+      const engine = new Engine({"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":11020620,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4});
 
       function showError(msg) {
         label.style.display = 'none';
@@ -552,7 +552,20 @@
         errBox.textContent = msg || 'Unable to launch WebGL2 engine in this browser.';
       }
 
+      function setBootStage(stageText, pct) {
+        if (window.__gdOverlayDismissed) return;
+        if (typeof pct === 'number' && fill) {
+          const clamped = Math.max(8, Math.min(100, Math.round(pct)));
+          fill.style.width = clamped + '%';
+        }
+        if (stageText && label) {
+          label.textContent = stageText;
+        }
+      }
+      window.__gdSetBootStage = setBootStage;
+
       function dismissOverlay() {
+        if (window.__gdOverlayDismissed) return;
         window.__gdOverlayDismissed = true;
         if (window.__gdUnlockAudio) window.__gdUnlockAudio(false);
         if (window.__gdSyncAudioHint) window.__gdSyncAudioHint();
@@ -566,17 +579,24 @@
           }, 400);
         }
       }
+      window.__gdDismissOverlay = dismissOverlay;
 
       engine.startGame({
         onProgress: function (current, total) {
           if (total > 0) {
-            const pct = Math.max(8, Math.min(100, Math.round((current / total) * 100)));
-            fill.style.width = pct + '%';
-            label.textContent = pct >= 100 ? 'STARTING ENGINE...' : ('LOADING ' + pct + '%');
+            const rawPct = Math.max(0, Math.min(100, Math.round((current / total) * 100)));
+            const barPct = Math.max(8, Math.min(92, Math.round(8 + rawPct * 0.84)));
+            fill.style.width = barPct + '%';
+            label.textContent = rawPct >= 100 ? 'STARTING ENGINE...' : ('LOADING ' + rawPct + '%');
           }
         },
       }).then(function () {
-        dismissOverlay();
+        if (!window.__gdOverlayDismissed) {
+          setBootStage('PREPARING CITY...', 93);
+          setTimeout(function () {
+            if (!window.__gdOverlayDismissed) dismissOverlay();
+          }, 20000);
+        }
       }, function (err) {
         showError(err && err.message ? err.message : String(err));
       });
